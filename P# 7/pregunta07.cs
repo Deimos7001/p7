@@ -1,72 +1,75 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 //INF-317 - 1ER EXAMEN PARCIAL
 //NOMBRE: VICTOR GABRIEL CAPIA ALI
 //CI: 4762494 LP
 //PREGUNTA 7. Realice el cálculo de PI con .NET
 
-class Program
+namespace ConsoleApplication2
 {
-    // Declaración de una variable pública 'suma' para acumular la aproximación de PI/4.
-    public static double suma = 0.0; 
-
-    static void calcular_PI(object mensaje)
+    class Program
     {
-        // Declaración de una variable local 'valor' para almacenar el valor de la aproximación en esta iteración.
-        double valor = 0;
-        
-        // Convierte el argumento 'mensaje' a un entero que representa la posición en la serie de Leibniz.
-        int posicion = (int) mensaje;
-
-        // Calcula el valor actual de la serie de Leibniz en función de la posición.
-
-        valor = 1 / ((2.0 * posicion) + 1.0); 
-
-        if (posicion % 2 == 1)
+        static void Main()
         {
-            suma = suma - valor; 
+            int numTotalPoints = 1000000; // Número total de puntos a generar
+            int numThreads = 4; // Número de hilos a utilizar
+
+            // Contadores para puntos dentro y fuera del círculo
+            int insideCircle = 0;
+            int outsideCircle = 0;
+
+            // Crear un objeto para sincronizar el acceso a los contadores
+            object lockObject = new object();
+
+            // Crear tareas paralelas para generar puntos aleatorios
+            Parallel.For(0, numThreads, i =>
+            {
+                Random random = new Random();
+                int pointsPerThread = numTotalPoints / numThreads;
+
+                for (int j = 0; j < pointsPerThread; j++)
+                {
+                    double x = random.NextDouble();
+                    double y = random.NextDouble();
+
+                    // Comprueba si el punto está dentro del círculo
+                    if (IsInsideCircle(x, y))
+                    {
+                        lock (lockObject)
+                        {
+                            insideCircle++;
+                        }
+                    }
+                    else
+                    {
+                        lock (lockObject)
+                        {
+                            outsideCircle++;
+                        }
+                    }
+                }
+            });
+
+            // Calcula la estimación de PI
+            double estimatedPi = 4.0 * insideCircle / numTotalPoints;
+
+            // Imprime el resultado
+            //Console.WriteLine($"Estimación de Pi: {estimatedPi}");
+            Console.WriteLine("Estimación de Pi: " + estimatedPi);
+
+            Console.WriteLine("Presiona cualquier tecla para salir...");
+            Console.ReadKey(); // Espera a que el usuario presione una tecla antes de salir
         }
-        else
+
+        static bool IsInsideCircle(double x, double y)
         {
-            suma = suma + valor; 
+            // Comprueba si el punto (x, y) está dentro del círculo unitario
+            return x * x + y * y <= 1;
         }
-    }
-
-    static void calcular_PI2(object mensaje)
-    {
-        // Declaración de una variable local 'valor' para almacenar el valor de la aproximación en esta iteración.
-        double valor = 0;
-
-        // Convierte el argumento 'mensaje' a un entero que representa la posición en la serie de Leibniz.
-        int posicion = (int)mensaje;
-
-        // Calcula el valor actual de la serie de Leibniz en función de la posición.
-
-        valor = 4 / ((2.0 * posicion) + 1.0);
-
-        if (posicion % 2 == 0)
-        {
-            suma = suma + valor;
-        }
-        else
-        {
-            suma = suma - valor;
-        }
-    }
-
-    static void Main()
-    {
-        int inicio = 0; 
-        int fin = 10000000; 
-        for (int i = inicio; i <= fin; i++)
-        {
-            ThreadPool.QueueUserWorkItem(calcular_PI2, i); // Inicia el cálculo de π en subprocesos separados.
-
-        }
-        Thread.Sleep(3000);
-        // Muestra la aproximación actual de π en la consola.
-        Console.WriteLine("El valor de PI es: " + (suma));
-        Console.ReadKey();
     }
 }
